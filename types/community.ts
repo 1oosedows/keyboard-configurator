@@ -25,7 +25,7 @@ export interface UserStats {
   forumPosts: number;
   marketplaceRating: number;
   marketplaceSales: number;
-  buildDifficultiesCompleted: BuildDifficulty[];
+  buildDifficultiesCompleted: number[]; // Array of difficulty levels (1-5)
 }
 
 export interface Badge {
