@@ -23,8 +23,6 @@ export type {
   KeyProps,
   ModalProps,
   ConfigurationPanelProps,
-  NotificationType,
-  Notification,
 } from './ui';
 
 // Configuration-related types
