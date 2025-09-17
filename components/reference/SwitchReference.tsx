@@ -399,28 +399,31 @@ function ComparisonTable({ comparison }: { comparison: any }) {
             </tr>
           </thead>
           <tbody>
-            {Object.entries(comparison.differences).map(([key, diff]) => (
-              <tr key={key} className="border-b">
-                <td className="py-2 capitalize">{key}</td>
-                <td className="text-center py-2">
-                  {comparison.switch1.characteristics[key as keyof typeof comparison.switch1.characteristics]}
-                </td>
-                <td className="text-center py-2">
-                  {comparison.switch2.characteristics[key as keyof typeof comparison.switch2.characteristics]}
-                </td>
-                <td className="text-center py-2">
-                  <span className={cn(
-                    'px-2 py-1 rounded text-xs',
-                    diff === 0 ? 'bg-gray-100 text-gray-800' :
-                    diff <= 2 ? 'bg-green-100 text-green-800' :
-                    diff <= 4 ? 'bg-yellow-100 text-yellow-800' :
-                    'bg-red-100 text-red-800'
-                  )}>
-                    {diff}
-                  </span>
-                </td>
-              </tr>
-            ))}
+            {Object.entries(comparison.differences).map(([key, diff]) => {
+              const diffValue = diff as number;
+              return (
+                <tr key={key} className="border-b">
+                  <td className="py-2 capitalize">{key}</td>
+                  <td className="text-center py-2">
+                    {comparison.switch1.characteristics[key as keyof typeof comparison.switch1.characteristics]}
+                  </td>
+                  <td className="text-center py-2">
+                    {comparison.switch2.characteristics[key as keyof typeof comparison.switch2.characteristics]}
+                  </td>
+                  <td className="text-center py-2">
+                    <span className={cn(
+                      'px-2 py-1 rounded text-xs',
+                      diffValue === 0 ? 'bg-gray-100 text-gray-800' :
+                      diffValue <= 2 ? 'bg-green-100 text-green-800' :
+                      diffValue <= 4 ? 'bg-yellow-100 text-yellow-800' :
+                      'bg-red-100 text-red-800'
+                    )}>
+                      {diffValue}
+                    </span>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
