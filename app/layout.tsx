@@ -18,6 +18,8 @@ export const metadata: Metadata = {
   description: "Design, configure, and build custom mechanical keyboards with our comprehensive tools, community guides, and marketplace.",
 };
 
+// Force rebuild - all TypeScript errors should be fixed
+
 export default function RootLayout({
   children,
 }: Readonly<{
