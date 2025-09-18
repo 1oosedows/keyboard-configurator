@@ -9,3 +9,9 @@ updates:
     directory: "/package-lock.json" # Location of package manifests
     schedule:
       interval: "weekly"
+
+
+    - package-ecosystem: "npm" # See documentation for possible values
+    directory: "/package.json" # Location of package manifests
+    schedule:
+      interval: "weekly"
