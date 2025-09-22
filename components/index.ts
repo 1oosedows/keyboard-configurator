@@ -25,3 +25,9 @@ export { SwitchRadarChart, MiniSwitchRadarChart } from './charts/SwitchRadarChar
 export { BuildCard } from './community/BuildCard';
 export { BuildDifficultyBadge, SimpleDifficultyBadge } from './community/BuildDifficultyBadge';
 export { MarketplaceCard } from './community/MarketplaceCard';
+
+// Navigation components
+export { UserNav } from './navigation/UserNav';
+
+// Provider components
+export { SessionProvider } from './providers/SessionProvider';

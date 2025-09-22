@@ -1,0 +1,326 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+// NextAuth.js required models
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  username      String?   @unique
+  password      String?   // For credentials login
+  bio           String?
+  location      String?
+  website       String?
+  discordHandle String?
+  redditHandle  String?
+  instagramHandle String?
+  youtubeHandle String?
+  
+  // Community stats
+  reputation    Int       @default(0)
+  joinedAt      DateTime  @default(now())
+  lastActiveAt  DateTime  @default(now())
+  
+  // Preferences
+  theme         String    @default("system") // light, dark, system
+  emailNotifications Boolean @default(true)
+  pushNotifications  Boolean @default(true)
+  profileVisibility  String  @default("public") // public, friends, private
+  
+  // Relations
+  accounts      Account[]
+  sessions      Session[]
+  builds        Build[]
+  comments      Comment[]
+  likes         Like[]
+  follows       Follow[] @relation("UserFollows")
+  followers     Follow[] @relation("UserFollowers")
+  badges        UserBadge[]
+  notifications Notification[]
+  marketplaceItems MarketplaceItem[]
+  marketplaceReviews MarketplaceReview[]
+  
+  @@map("users")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// Community Models
+model Build {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  authorId    String
+  layoutId    String
+  difficulty  Int      // 1-5
+  estimatedCost Float
+  buildTime   Int      // hours
+  featured    Boolean  @default(false)
+  verified    Boolean  @default(false)
+  published   Boolean  @default(true)
+  
+  // JSON fields for complex data
+  configuration String  // JSON string of keyboard configuration
+  keyMappings   String  // JSON string of key mappings
+  components    String  // JSON string of components used
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  author      User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  images      BuildImage[]
+  comments    Comment[]
+  likes       Like[]
+  tags        BuildTag[]
+  
+  @@map("builds")
+}
+
+model BuildImage {
+  id       String @id @default(cuid())
+  buildId  String
+  url      String
+  caption  String?
+  type     String // glamour, assembly, detail, typing
+  order    Int    @default(0)
+  
+  build    Build  @relation(fields: [buildId], references: [id], onDelete: Cascade)
+  
+  @@map("build_images")
+}
+
+model Comment {
+  id       String   @id @default(cuid())
+  content  String
+  authorId String
+  buildId  String
+  parentId String?  // For nested comments
+  helpful  Boolean  @default(false)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relations
+  author   User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  build    Build    @relation(fields: [buildId], references: [id], onDelete: Cascade)
+  parent   Comment? @relation("CommentReplies", fields: [parentId], references: [id])
+  replies  Comment[] @relation("CommentReplies")
+  likes    Like[]
+  
+  @@map("comments")
+}
+
+model Like {
+  id        String   @id @default(cuid())
+  userId    String
+  buildId   String?
+  commentId String?
+  
+  createdAt DateTime @default(now())
+  
+  // Relations
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  build     Build?   @relation(fields: [buildId], references: [id], onDelete: Cascade)
+  comment   Comment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, buildId])
+  @@unique([userId, commentId])
+  @@map("likes")
+}
+
+model Follow {
+  id          String   @id @default(cuid())
+  followerId  String
+  followingId String
+  
+  createdAt   DateTime @default(now())
+  
+  // Relations
+  follower    User     @relation("UserFollows", fields: [followerId], references: [id], onDelete: Cascade)
+  following   User     @relation("UserFollowers", fields: [followingId], references: [id], onDelete: Cascade)
+  
+  @@unique([followerId, followingId])
+  @@map("follows")
+}
+
+model Badge {
+  id          String @id @default(cuid())
+  name        String @unique
+  description String
+  icon        String
+  rarity      String // common, uncommon, rare, legendary
+  category    String // achievement, contribution, special
+  
+  users       UserBadge[]
+  
+  @@map("badges")
+}
+
+model UserBadge {
+  id        String   @id @default(cuid())
+  userId    String
+  badgeId   String
+  earnedAt  DateTime @default(now())
+  
+  // Relations
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badge     Badge    @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, badgeId])
+  @@map("user_badges")
+}
+
+model Tag {
+  id    String @id @default(cuid())
+  name  String @unique
+  color String @default("#3b82f6")
+  
+  builds BuildTag[]
+  
+  @@map("tags")
+}
+
+model BuildTag {
+  id      String @id @default(cuid())
+  buildId String
+  tagId   String
+  
+  // Relations
+  build   Build  @relation(fields: [buildId], references: [id], onDelete: Cascade)
+  tag     Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  
+  @@unique([buildId, tagId])
+  @@map("build_tags")
+}
+
+model Notification {
+  id      String   @id @default(cuid())
+  userId  String
+  type    String   // build_liked, comment_reply, follow, etc.
+  title   String
+  message String
+  read    Boolean  @default(false)
+  data    String?  // JSON string for additional data
+  
+  createdAt DateTime @default(now())
+  
+  // Relations
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("notifications")
+}
+
+// Marketplace Models
+model MarketplaceItem {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  sellerId    String
+  category    String
+  condition   String   // new, like-new, good, fair, poor
+  price       Float
+  currency    String   @default("USD")
+  status      String   @default("active") // active, sold, reserved, expired
+  featured    Boolean  @default(false)
+  verified    Boolean  @default(false)
+  
+  // JSON fields
+  images        String  // JSON array of image URLs
+  specifications String // JSON object of specs
+  shipping      String  // JSON object of shipping info
+  
+  views       Int      @default(0)
+  watchers    Int      @default(0)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  seller      User     @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  questions   MarketplaceQuestion[]
+  reviews     MarketplaceReview[]
+  
+  @@map("marketplace_items")
+}
+
+model MarketplaceQuestion {
+  id       String    @id @default(cuid())
+  itemId   String
+  askerId  String
+  question String
+  answer   String?
+  
+  createdAt  DateTime @default(now())
+  answeredAt DateTime?
+  
+  // Relations
+  item     MarketplaceItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  
+  @@map("marketplace_questions")
+}
+
+model MarketplaceReview {
+  id           String  @id @default(cuid())
+  itemId       String
+  reviewerId   String
+  rating       Int     // 1-5
+  title        String
+  content      String
+  pros         String  // JSON array
+  cons         String  // JSON array
+  wouldRecommend Boolean
+  helpful      Int     @default(0)
+  
+  createdAt    DateTime @default(now())
+  
+  // Relations
+  item         MarketplaceItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  reviewer     User            @relation(fields: [reviewerId], references: [id], onDelete: Cascade)
+  
+  @@map("marketplace_reviews")
+}
