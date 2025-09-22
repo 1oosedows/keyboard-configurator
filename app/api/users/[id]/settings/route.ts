@@ -5,11 +5,11 @@ import { prisma } from '@/lib/prisma';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
-    const { id } = params;
+    const { id } = await params;
 
     // Check if user is authenticated and accessing their own settings
     if (!session?.user?.id || session.user.id !== id) {
@@ -57,11 +57,11 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
-    const { id } = params;
+    const { id } = await params;
 
     // Check if user is authenticated and updating their own settings
     if (!session?.user?.id || session.user.id !== id) {

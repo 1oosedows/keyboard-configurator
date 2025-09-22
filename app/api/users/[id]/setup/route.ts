@@ -5,11 +5,11 @@ import { prisma } from '@/lib/prisma';
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
-    const { id } = params;
+    const { id } = await params;
 
     // Check if user is authenticated and setting up their own profile
     if (!session?.user?.id || session.user.id !== id) {

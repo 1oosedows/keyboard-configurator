@@ -75,6 +75,7 @@ model User {
   followers     Follow[] @relation("UserFollowers")
   badges        UserBadge[]
   notifications Notification[]
+  configurations Configuration[]
   marketplaceItems MarketplaceItem[]
   marketplaceReviews MarketplaceReview[]
   
@@ -107,6 +108,8 @@ model Build {
   configuration String  // JSON string of keyboard configuration
   keyMappings   String  // JSON string of key mappings
   components    String  // JSON string of components used
+  
+  views       Int      @default(0)
   
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -253,6 +256,25 @@ model Notification {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   
   @@map("notifications")
+}
+
+// Configuration Models
+model Configuration {
+  id          String   @id @default(cuid())
+  name        String
+  layoutId    String
+  keyMappings String   // JSON string of key mappings
+  layers      String   // JSON string of layers
+  public      Boolean  @default(false)
+  authorId    String
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  author      User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  
+  @@map("configurations")
 }
 
 // Marketplace Models

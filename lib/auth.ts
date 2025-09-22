@@ -73,7 +73,7 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async jwt({ token, user, account }) {
       if (user) {
-        token.username = user.username;
+        token.username = user.username || undefined;
       }
       return token;
     },
@@ -129,7 +129,6 @@ export const authOptions: NextAuthOptions = {
   },
   pages: {
     signIn: "/auth/signin",
-    signUp: "/auth/signup",
     error: "/auth/error",
   },
   events: {
