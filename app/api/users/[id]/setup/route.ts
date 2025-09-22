@@ -21,86 +21,73 @@ export async function POST(
 
     const { username, bio, location, interests } = await request.json();
 
-    // Validation
-    if (!username || !username.trim()) {
-      return NextResponse.json(
-        { message: 'Username is required' },
-        { status: 400 }
-      );
-    }
+    // Validate username uniqueness
+    if (username) {
+      const existingUser = await prisma.user.findFirst({
+        where: {
+          username,
+          NOT: { id },
+        },
+      });
 
-    // Check if username is already taken
-    const existingUser = await prisma.user.findFirst({
-      where: {
-        username,
-        NOT: { id },
-      },
-    });
-
-    if (existingUser) {
-      return NextResponse.json(
-        { message: 'Username is already taken' },
-        { status: 400 }
-      );
+      if (existingUser) {
+        return NextResponse.json(
+          { message: 'Username is already taken' },
+          { status: 400 }
+        );
+      }
     }
 
     // Update user profile
     const updatedUser = await prisma.user.update({
       where: { id },
       data: {
-        username,
-        bio: bio || null,
-        location: location || null,
+        username: username || undefined,
+        bio: bio || undefined,
+        location: location || undefined,
         lastActiveAt: new Date(),
       },
     });
 
-    // Create tags for interests if they don't exist and associate with user
-    if (interests && interests.length > 0) {
-      for (const interest of interests) {
-        // Create tag if it doesn't exist
-        await prisma.tag.upsert({
-          where: { name: interest },
-          update: {},
-          create: {
-            name: interest,
-            color: '#3b82f6', // Default blue color
-          },
+    // Award "Profile Complete" badge if user filled out bio and location
+    if (bio && location) {
+      try {
+        const profileBadge = await prisma.badge.findUnique({
+          where: { name: 'Profile Complete' }
         });
+        
+        if (profileBadge) {
+          await prisma.userBadge.upsert({
+            where: {
+              userId_badgeId: {
+                userId: id,
+                badgeId: profileBadge.id,
+              }
+            },
+            update: {},
+            create: {
+              userId: id,
+              badgeId: profileBadge.id,
+            }
+          });
+        }
+      } catch (error) {
+        console.error('Error awarding profile badge:', error);
       }
     }
 
-    // Award "First Setup" badge if it exists
-    try {
-      const setupBadge = await prisma.badge.findUnique({
-        where: { name: 'Welcome' }
-      });
-      
-      if (setupBadge) {
-        await prisma.userBadge.upsert({
-          where: {
-            userId_badgeId: {
-              userId: id,
-              badgeId: setupBadge.id,
-            },
-          },
-          update: {},
-          create: {
-            userId: id,
-            badgeId: setupBadge.id,
-          },
-        });
-      }
-    } catch (error) {
-      console.error('Error awarding setup badge:', error);
-    }
+    // Store interests as user preferences (could be expanded later)
+    // For now, we'll just log them
+    console.log('User interests:', interests);
 
     return NextResponse.json({
       message: 'Profile setup completed successfully',
       user: {
         id: updatedUser.id,
-        username: updatedUser.username,
         name: updatedUser.name,
+        username: updatedUser.username,
+        bio: updatedUser.bio,
+        location: updatedUser.location,
       },
     });
   } catch (error) {

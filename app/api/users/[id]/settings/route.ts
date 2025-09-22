@@ -22,10 +22,8 @@ export async function GET(
     const user = await prisma.user.findUnique({
       where: { id },
       select: {
-        id: true,
         name: true,
         username: true,
-        email: true,
         bio: true,
         location: true,
         website: true,
@@ -90,15 +88,7 @@ export async function PUT(
       profileVisibility,
     } = data;
 
-    // Validation
-    if (!name || !username) {
-      return NextResponse.json(
-        { message: 'Name and username are required' },
-        { status: 400 }
-      );
-    }
-
-    // Check if username is already taken by another user
+    // Validate username uniqueness if it's being changed
     if (username) {
       const existingUser = await prisma.user.findFirst({
         where: {
@@ -115,57 +105,39 @@ export async function PUT(
       }
     }
 
-    // Validate website URL if provided
-    if (website && website.trim()) {
-      try {
-        new URL(website);
-      } catch {
-        return NextResponse.json(
-          { message: 'Invalid website URL' },
-          { status: 400 }
-        );
-      }
-    }
-
-    // Update user
+    // Update user settings
     const updatedUser = await prisma.user.update({
       where: { id },
       data: {
-        name,
-        username,
-        bio: bio || null,
-        location: location || null,
-        website: website || null,
-        discordHandle: discordHandle || null,
-        redditHandle: redditHandle || null,
-        instagramHandle: instagramHandle || null,
-        youtubeHandle: youtubeHandle || null,
-        theme,
-        emailNotifications,
-        pushNotifications,
-        profileVisibility,
+        name: name || undefined,
+        username: username || undefined,
+        bio: bio || undefined,
+        location: location || undefined,
+        website: website || undefined,
+        discordHandle: discordHandle || undefined,
+        redditHandle: redditHandle || undefined,
+        instagramHandle: instagramHandle || undefined,
+        youtubeHandle: youtubeHandle || undefined,
+        theme: theme || 'system',
+        emailNotifications: emailNotifications ?? true,
+        pushNotifications: pushNotifications ?? true,
+        profileVisibility: profileVisibility || 'public',
         lastActiveAt: new Date(),
       },
       select: {
         id: true,
         name: true,
         username: true,
-        email: true,
         bio: true,
         location: true,
         website: true,
-        discordHandle: true,
-        redditHandle: true,
-        instagramHandle: true,
-        youtubeHandle: true,
-        theme: true,
-        emailNotifications: true,
-        pushNotifications: true,
-        profileVisibility: true,
       },
     });
 
-    return NextResponse.json(updatedUser);
+    return NextResponse.json({
+      message: 'Settings updated successfully',
+      user: updatedUser,
+    });
   } catch (error) {
     console.error('Error updating user settings:', error);
     return NextResponse.json(

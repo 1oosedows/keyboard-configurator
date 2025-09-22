@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 
 export default function ProfileSetupPage() {
-  const { data: session, status, update } = useSession();
+  const { data: session, status } = useSession();
   const router = useRouter();
   const [formData, setFormData] = useState({
     username: '',
@@ -17,29 +17,57 @@ export default function ProfileSetupPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  const interestOptions = [
+    '60% Keyboards',
+    '65% Keyboards', 
+    '75% Keyboards',
+    'TKL Keyboards',
+    'Full Size Keyboards',
+    'Linear Switches',
+    'Tactile Switches',
+    'Clicky Switches',
+    'Custom Keycaps',
+    'Artisan Keycaps',
+    'Gaming',
+    'Programming',
+    'Writing',
+    'Budget Builds',
+    'Premium Builds',
+    'DIY Building',
+    'Soldering',
+    'Hot-swap',
+    'RGB Lighting',
+    'Wireless Keyboards',
+  ];
+
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/auth/signin');
       return;
     }
 
-    // Pre-fill username from email if available
-    if (session?.user?.email && !formData.username) {
-      const suggestedUsername = session.user.email.split('@')[0];
-      setFormData(prev => ({ ...prev, username: suggestedUsername }));
+    // Pre-fill username from session if available
+    if (session?.user?.username) {
+      setFormData(prev => ({
+        ...prev,
+        username: session.user.username || '',
+      }));
     }
-  }, [session, status, router, formData.username]);
+  }, [session, status, router]);
 
-  const handleInputChange = (field: string, value: string | string[]) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setFormData(prev => ({
+      ...prev,
+      [e.target.name]: e.target.value,
+    }));
   };
 
-  const toggleInterest = (interest: string) => {
+  const handleInterestToggle = (interest: string) => {
     setFormData(prev => ({
       ...prev,
       interests: prev.interests.includes(interest)
         ? prev.interests.filter(i => i !== interest)
-        : [...prev.interests, interest]
+        : [...prev.interests, interest],
     }));
   };
 
@@ -64,26 +92,21 @@ export default function ProfileSetupPage() {
       });
 
       if (response.ok) {
-        // Update session with new username
-        await update({ username: formData.username });
         router.push('/profile');
       } else {
         const data = await response.json();
-        setError(data.message || 'Failed to setup profile');
+        setError(data.message || 'Error setting up profile');
       }
     } catch (error) {
-      setError('An error occurred. Please try again.');
+      setError('Error setting up profile');
     } finally {
       setLoading(false);
     }
   };
 
-  const interests = [
-    '60% Keyboards', '65% Keyboards', '75% Keyboards', 'TKL Keyboards', 'Full Size',
-    'Linear Switches', 'Tactile Switches', 'Clicky Switches', 'Custom Keycaps',
-    'Artisan Keycaps', 'RGB Lighting', 'Wireless Keyboards', 'Gaming',
-    'Programming', 'Typing', 'Vintage Keyboards', 'DIY Building', 'Modding'
-  ];
+  const handleSkip = () => {
+    router.push('/');
+  };
 
   if (status === 'loading') {
     return (
@@ -97,10 +120,12 @@ export default function ProfileSetupPage() {
     <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-2xl w-full space-y-8">
         <div className="text-center">
-          <div className="mx-auto h-16 w-16 flex items-center justify-center rounded-full bg-blue-100 mb-4">
-            <span className="text-3xl">🎹</span>
+          <div className="mx-auto h-12 w-12 flex items-center justify-center rounded-full bg-blue-100">
+            <span className="text-2xl">⌨️</span>
           </div>
-          <h2 className="text-3xl font-bold text-gray-900">Welcome to KeyboardConfig!</h2>
+          <h2 className="mt-6 text-3xl font-bold text-gray-900">
+            Welcome to KeyboardConfig!
+          </h2>
           <p className="mt-2 text-gray-600">
             Let's set up your profile to get you started in the community
           </p>
@@ -116,15 +141,17 @@ export default function ProfileSetupPage() {
 
             {/* Username */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2">
                 Choose a Username *
               </label>
               <input
                 type="text"
+                id="username"
+                name="username"
                 required
                 value={formData.username}
-                onChange={(e) => handleInputChange('username', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                 placeholder="Enter a unique username"
               />
               <p className="text-xs text-gray-500 mt-1">
@@ -134,30 +161,37 @@ export default function ProfileSetupPage() {
 
             {/* Bio */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="bio" className="block text-sm font-medium text-gray-700 mb-2">
                 Tell us about yourself
               </label>
               <textarea
-                value={formData.bio}
-                onChange={(e) => handleInputChange('bio', e.target.value)}
+                id="bio"
+                name="bio"
                 rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="Share your keyboard journey, experience level, or what you're looking to learn..."
+                value={formData.bio}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Share your keyboard journey, favorite switches, or what you're looking to build..."
               />
             </div>
 
             {/* Location */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-2">
                 Location (Optional)
               </label>
               <input
                 type="text"
+                id="location"
+                name="location"
                 value={formData.location}
-                onChange={(e) => handleInputChange('location', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                 placeholder="City, Country"
               />
+              <p className="text-xs text-gray-500 mt-1">
+                Help connect with local keyboard enthusiasts
+              </p>
             </div>
 
             {/* Interests */}
@@ -166,11 +200,11 @@ export default function ProfileSetupPage() {
                 What interests you? (Select all that apply)
               </label>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                {interests.map((interest) => (
+                {interestOptions.map((interest) => (
                   <button
                     key={interest}
                     type="button"
-                    onClick={() => toggleInterest(interest)}
+                    onClick={() => handleInterestToggle(interest)}
                     className={`px-3 py-2 text-sm rounded-md border transition-colors ${
                       formData.interests.includes(interest)
                         ? 'bg-blue-100 border-blue-300 text-blue-800'
@@ -181,21 +215,23 @@ export default function ProfileSetupPage() {
                   </button>
                 ))}
               </div>
+              <p className="text-xs text-gray-500 mt-2">
+                This helps us recommend relevant content and connect you with like-minded builders
+              </p>
             </div>
 
-            {/* Submit */}
-            <div className="flex items-center justify-between pt-4">
-              <button
+            {/* Actions */}
+            <div className="flex justify-between pt-6">
+              <Button
                 type="button"
-                onClick={() => router.push('/')}
-                className="text-gray-600 hover:text-gray-800"
+                variant="ghost"
+                onClick={handleSkip}
               >
                 Skip for now
-              </button>
+              </Button>
               <Button
                 type="submit"
                 disabled={loading}
-                className="px-8"
               >
                 {loading ? 'Setting up...' : 'Complete Setup'}
               </Button>
@@ -204,7 +240,7 @@ export default function ProfileSetupPage() {
         </div>
 
         <div className="text-center text-sm text-gray-500">
-          You can always update these settings later in your profile
+          You can always update your profile later in settings
         </div>
       </div>
     </div>

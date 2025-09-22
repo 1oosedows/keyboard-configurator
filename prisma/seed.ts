@@ -61,6 +61,13 @@ async function main() {
       rarity: 'legendary',
       category: 'special',
     },
+    {
+      name: 'Profile Complete',
+      description: 'Completed your profile with bio and location',
+      icon: '📝',
+      rarity: 'common',
+      category: 'achievement',
+    },
   ];
 
   for (const badge of badges) {

@@ -4,20 +4,17 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/Button';
-import { Select } from '@/components/ui/Select';
 
-interface UserSettings {
-  id: string;
+interface ProfileSettings {
   name: string;
   username: string;
-  email: string;
-  bio?: string;
-  location?: string;
-  website?: string;
-  discordHandle?: string;
-  redditHandle?: string;
-  instagramHandle?: string;
-  youtubeHandle?: string;
+  bio: string;
+  location: string;
+  website: string;
+  discordHandle: string;
+  redditHandle: string;
+  instagramHandle: string;
+  youtubeHandle: string;
   theme: string;
   emailNotifications: boolean;
   pushNotifications: boolean;
@@ -25,12 +22,26 @@ interface UserSettings {
 }
 
 export default function ProfileSettingsPage() {
-  const { data: session, status, update } = useSession();
+  const { data: session, status } = useSession();
   const router = useRouter();
-  const [settings, setSettings] = useState<UserSettings | null>(null);
+  const [settings, setSettings] = useState<ProfileSettings>({
+    name: '',
+    username: '',
+    bio: '',
+    location: '',
+    website: '',
+    discordHandle: '',
+    redditHandle: '',
+    instagramHandle: '',
+    youtubeHandle: '',
+    theme: 'system',
+    emailNotifications: true,
+    pushNotifications: true,
+    profileVisibility: 'public',
+  });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [message, setMessage] = useState('');
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -57,16 +68,18 @@ export default function ProfileSettingsPage() {
     }
   };
 
-  const handleInputChange = (field: keyof UserSettings, value: string | boolean) => {
-    if (!settings) return;
-    setSettings(prev => prev ? { ...prev, [field]: value } : null);
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value, type } = e.target;
+    setSettings(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value,
+    }));
   };
 
-  const handleSave = async () => {
-    if (!settings) return;
-    
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     setSaving(true);
-    setMessage(null);
+    setMessage('');
 
     try {
       const response = await fetch(`/api/users/${session?.user?.id}/settings`, {
@@ -78,17 +91,14 @@ export default function ProfileSettingsPage() {
       });
 
       if (response.ok) {
-        setMessage({ type: 'success', text: 'Settings saved successfully!' });
-        // Update session if name changed
-        if (settings.name !== session?.user?.name) {
-          await update({ name: settings.name });
-        }
+        setMessage('Settings saved successfully!');
+        setTimeout(() => setMessage(''), 3000);
       } else {
         const data = await response.json();
-        setMessage({ type: 'error', text: data.message || 'Failed to save settings' });
+        setMessage(data.message || 'Error saving settings');
       }
     } catch (error) {
-      setMessage({ type: 'error', text: 'An error occurred while saving' });
+      setMessage('Error saving settings');
     } finally {
       setSaving(false);
     }
@@ -102,283 +112,262 @@ export default function ProfileSettingsPage() {
     );
   }
 
-  if (!settings) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Settings not found</h1>
-          <Button onClick={() => router.push('/profile')}>Back to Profile</Button>
-        </div>
-      </div>
-    );
-  }
-
-  const themeOptions = [
-    { value: 'system', label: 'System' },
-    { value: 'light', label: 'Light' },
-    { value: 'dark', label: 'Dark' },
-  ];
-
-  const visibilityOptions = [
-    { value: 'public', label: 'Public' },
-    { value: 'friends', label: 'Friends Only' },
-    { value: 'private', label: 'Private' },
-  ];
-
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between">
+      <div className="max-w-2xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h1 className="text-2xl font-bold text-gray-900">Profile Settings</h1>
+            <p className="text-gray-600 mt-1">Manage your account settings and preferences</p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="p-6 space-y-6">
+            {message && (
+              <div className={`p-4 rounded-md ${
+                message.includes('successfully') 
+                  ? 'bg-green-50 border border-green-200 text-green-800'
+                  : 'bg-red-50 border border-red-200 text-red-800'
+              }`}>
+                {message}
+              </div>
+            )}
+
+            {/* Basic Information */}
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Profile Settings</h1>
-              <p className="text-gray-600 mt-1">Manage your account settings and preferences</p>
-            </div>
-            <Button variant="outline" onClick={() => router.push('/profile')}>
-              Back to Profile
-            </Button>
-          </div>
-        </div>
+              <h2 className="text-lg font-medium text-gray-900 mb-4">Basic Information</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+                    Display Name
+                  </label>
+                  <input
+                    type="text"
+                    id="name"
+                    name="name"
+                    value={settings.name}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Your display name"
+                  />
+                </div>
 
-        {/* Message */}
-        {message && (
-          <div className={`mb-6 p-4 rounded-md ${
-            message.type === 'success' 
-              ? 'bg-green-50 border border-green-200 text-green-800' 
-              : 'bg-red-50 border border-red-200 text-red-800'
-          }`}>
-            {message.text}
-          </div>
-        )}
-
-        <div className="space-y-6">
-          {/* Basic Information */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Basic Information</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Full Name
-                </label>
-                <input
-                  type="text"
-                  value={settings.name}
-                  onChange={(e) => handleInputChange('name', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                />
+                <div>
+                  <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1">
+                    Username
+                  </label>
+                  <input
+                    type="text"
+                    id="username"
+                    name="username"
+                    value={settings.username}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Your username"
+                  />
+                </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Username
-                </label>
-                <input
-                  type="text"
-                  value={settings.username}
-                  onChange={(e) => handleInputChange('username', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Email
-                </label>
-                <input
-                  type="email"
-                  value={settings.email}
-                  disabled
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-500"
-                />
-                <p className="text-xs text-gray-500 mt-1">Email cannot be changed</p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Location
-                </label>
-                <input
-                  type="text"
-                  value={settings.location || ''}
-                  onChange={(e) => handleInputChange('location', e.target.value)}
-                  placeholder="City, Country"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+              <div className="mt-4">
+                <label htmlFor="bio" className="block text-sm font-medium text-gray-700 mb-1">
                   Bio
                 </label>
                 <textarea
-                  value={settings.bio || ''}
-                  onChange={(e) => handleInputChange('bio', e.target.value)}
-                  placeholder="Tell us about yourself and your keyboard journey..."
+                  id="bio"
+                  name="bio"
                   rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                  value={settings.bio}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Tell us about yourself..."
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Website
-                </label>
-                <input
-                  type="url"
-                  value={settings.website || ''}
-                  onChange={(e) => handleInputChange('website', e.target.value)}
-                  placeholder="https://yourwebsite.com"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-            </div>
-          </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                <div>
+                  <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-1">
+                    Location
+                  </label>
+                  <input
+                    type="text"
+                    id="location"
+                    name="location"
+                    value={settings.location}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="City, Country"
+                  />
+                </div>
 
-          {/* Social Links */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Social Links</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Discord Handle
-                </label>
-                <input
-                  type="text"
-                  value={settings.discordHandle || ''}
-                  onChange={(e) => handleInputChange('discordHandle', e.target.value)}
-                  placeholder="username#1234"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Reddit Handle
-                </label>
-                <input
-                  type="text"
-                  value={settings.redditHandle || ''}
-                  onChange={(e) => handleInputChange('redditHandle', e.target.value)}
-                  placeholder="u/username"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Instagram Handle
-                </label>
-                <input
-                  type="text"
-                  value={settings.instagramHandle || ''}
-                  onChange={(e) => handleInputChange('instagramHandle', e.target.value)}
-                  placeholder="@username"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  YouTube Handle
-                </label>
-                <input
-                  type="text"
-                  value={settings.youtubeHandle || ''}
-                  onChange={(e) => handleInputChange('youtubeHandle', e.target.value)}
-                  placeholder="@username"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                />
+                <div>
+                  <label htmlFor="website" className="block text-sm font-medium text-gray-700 mb-1">
+                    Website
+                  </label>
+                  <input
+                    type="url"
+                    id="website"
+                    name="website"
+                    value={settings.website}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="https://yourwebsite.com"
+                  />
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Preferences */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Preferences</h2>
-            <div className="space-y-4">
+            {/* Social Links */}
+            <div>
+              <h2 className="text-lg font-medium text-gray-900 mb-4">Social Links</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor="discordHandle" className="block text-sm font-medium text-gray-700 mb-1">
+                    Discord
+                  </label>
+                  <input
+                    type="text"
+                    id="discordHandle"
+                    name="discordHandle"
+                    value={settings.discordHandle}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="username#1234"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="redditHandle" className="block text-sm font-medium text-gray-700 mb-1">
+                    Reddit
+                  </label>
+                  <input
+                    type="text"
+                    id="redditHandle"
+                    name="redditHandle"
+                    value={settings.redditHandle}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="u/username"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="instagramHandle" className="block text-sm font-medium text-gray-700 mb-1">
+                    Instagram
+                  </label>
+                  <input
+                    type="text"
+                    id="instagramHandle"
+                    name="instagramHandle"
+                    value={settings.instagramHandle}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="@username"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="youtubeHandle" className="block text-sm font-medium text-gray-700 mb-1">
+                    YouTube
+                  </label>
+                  <input
+                    type="text"
+                    id="youtubeHandle"
+                    name="youtubeHandle"
+                    value={settings.youtubeHandle}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="@username"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Preferences */}
+            <div>
+              <h2 className="text-lg font-medium text-gray-900 mb-4">Preferences</h2>
+              <div className="space-y-4">
+                <div>
+                  <label htmlFor="theme" className="block text-sm font-medium text-gray-700 mb-1">
                     Theme
                   </label>
-                  <Select
-                    options={themeOptions}
+                  <select
+                    id="theme"
+                    name="theme"
                     value={settings.theme}
-                    onChange={(value) => handleInputChange('theme', value)}
-                  />
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="light">Light</option>
+                    <option value="dark">Dark</option>
+                    <option value="system">System</option>
+                  </select>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor="profileVisibility" className="block text-sm font-medium text-gray-700 mb-1">
                     Profile Visibility
                   </label>
-                  <Select
-                    options={visibilityOptions}
+                  <select
+                    id="profileVisibility"
+                    name="profileVisibility"
                     value={settings.profileVisibility}
-                    onChange={(value) => handleInputChange('profileVisibility', value)}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    id="emailNotifications"
-                    checked={settings.emailNotifications}
-                    onChange={(e) => handleInputChange('emailNotifications', e.target.checked)}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                  />
-                  <label htmlFor="emailNotifications" className="ml-2 block text-sm text-gray-700">
-                    Email notifications for likes, comments, and follows
-                  </label>
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="public">Public</option>
+                    <option value="friends">Friends Only</option>
+                    <option value="private">Private</option>
+                  </select>
                 </div>
 
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    id="pushNotifications"
-                    checked={settings.pushNotifications}
-                    onChange={(e) => handleInputChange('pushNotifications', e.target.checked)}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                  />
-                  <label htmlFor="pushNotifications" className="ml-2 block text-sm text-gray-700">
-                    Push notifications for real-time updates
-                  </label>
+                <div className="space-y-2">
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="emailNotifications"
+                      name="emailNotifications"
+                      checked={settings.emailNotifications}
+                      onChange={handleInputChange}
+                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    />
+                    <label htmlFor="emailNotifications" className="ml-2 block text-sm text-gray-700">
+                      Email notifications
+                    </label>
+                  </div>
+
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="pushNotifications"
+                      name="pushNotifications"
+                      checked={settings.pushNotifications}
+                      onChange={handleInputChange}
+                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    />
+                    <label htmlFor="pushNotifications" className="ml-2 block text-sm text-gray-700">
+                      Push notifications
+                    </label>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Danger Zone */}
-          <div className="bg-white rounded-lg shadow-sm border border-red-200 p-6">
-            <h2 className="text-lg font-semibold text-red-900 mb-4">Danger Zone</h2>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between p-4 bg-red-50 rounded-md">
-                <div>
-                  <h3 className="text-sm font-medium text-red-900">Delete Account</h3>
-                  <p className="text-sm text-red-700">
-                    Permanently delete your account and all associated data
-                  </p>
-                </div>
-                <Button variant="destructive" size="sm">
-                  Delete Account
-                </Button>
-              </div>
+            {/* Actions */}
+            <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => router.push('/profile')}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={saving}
+              >
+                {saving ? 'Saving...' : 'Save Changes'}
+              </Button>
             </div>
-          </div>
-
-          {/* Save Button */}
-          <div className="flex justify-end">
-            <Button
-              onClick={handleSave}
-              disabled={saving}
-              className="px-8"
-            >
-              {saving ? 'Saving...' : 'Save Changes'}
-            </Button>
-          </div>
+          </form>
         </div>
       </div>
     </div>
