@@ -181,6 +181,10 @@ function SignInForm() {
   );
 }
 
+import { Suspense, lazy } from 'react';
+
+const SignInForm = lazy(() => import('./SignInForm')); // Move SignInForm to its own file
+
 export default function SignInPage() {
   return (
     <Suspense fallback={
